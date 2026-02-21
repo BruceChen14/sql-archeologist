@@ -1,109 +1,248 @@
-.main-wrapper { display: flex; flex-direction: column; height: 100vh; font-family: system-ui, sans-serif; background-color: #f8fafc; }
-header { display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.5rem; background-color: #1e293b; color: white;
-  .brand { font-size: 1.25rem; font-weight: bold; }
-  .controls { display: flex; align-items: center; gap: 1rem;
-    .usage { font-size: 0.875rem; color: #94a3b8; }
-    .mode-select, input { 
-      padding: 0.5rem; 
-      border-radius: 4px; 
-      border: 1px solid #475569; 
-      background: #334155; 
-      color: white; 
-      outline: none; 
-      font-size: 0.9rem;
-      &:focus { border-color: #3b82f6; } 
-    }
-    .mode-select { cursor: pointer; }
-  }
+/* 1. 徹底清除外部間隙 (若無 global.scss，可暫時寫在組件內，但建議放 styles.scss) */
+:host {
+  display: block;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+
+  --bg-dark: #020617;   /* 背景極深 */
+  --bg-main: #0f172a;   /* 編輯區稍淺 */
+  --bg-panel: #1e293b;  /* 頂欄/彈窗 */
+  --accent: #38bdf8;    /* 亮藍點綴 */
+  --text-bright: #ffffff;
+  --text-soft: #f1f5f9;
+  --border-dim: #1e293b; /* 極深色邊界，幾乎看不見 */
 }
-.editor-grid { display: flex; flex: 1; overflow: hidden;
-  .input-pane, .output-pane { flex: 1; display: flex; flex-direction: column; padding: 1rem; gap: 0.75rem; }
-  .input-pane { border-right: 1px solid #e2e8f0;
-    textarea { flex: 1; padding: 1rem; font-family: monospace; font-size: 0.875rem; border: 1px solid #cbd5e1; border-radius: 8px; resize: none; outline: none; &:focus { border-color: #3b82f6; box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2); } }
-    button { padding: 0.75rem; background-color: #2563eb; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: background 0.2s; &:hover:not(:disabled) { background-color: #1d4ed8; } &:disabled { background-color: #94a3b8; cursor: not-allowed; } }
-  }
-  .pane-toolbar {
-    display: flex; justify-content: space-between; align-items: center;
-    .pane-title { font-size: 0.875rem; font-weight: bold; color: #475569; }
-    
-    .sanitize-btn {
-      background-color: #10b981; /* 安全的綠色 */
-      color: white; border: none; padding: 0.4rem 0.8rem; border-radius: 6px;
-      font-size: 0.8rem; font-weight: bold; cursor: pointer; transition: background 0.2s;
-      &:hover { background-color: #059669; }
-    }
-  }
-  .output-pane { background-color: white; overflow-y: auto;
-    .markdown-view pre { white-space: pre-wrap; font-family: inherit; line-height: 1.6; color: #334155; }
-    .empty-state, .shimmer { display: flex; height: 100%; align-items: center; justify-content: center; color: #94a3b8; font-style: italic; }
-    .shimmer { animation: pulse 1.5s infinite; }
-  }
-  /* 🔥 Markdown 專屬美化樣式 */
-  .markdown-view {
-    line-height: 1.6;
-    color: #334155;
-    
-    h1, h2, h3 { font-weight: bold; color: #0f172a; margin-top: 1.5em; margin-bottom: 0.5em; }
-    h2 { font-size: 1.25em; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.3em; }
-    
-    ul { list-style-type: disc; padding-left: 1.5em; margin-bottom: 1em; }
-    ol { list-style-type: decimal; padding-left: 1.5em; margin-bottom: 1em; }
-    
-    strong { color: #0f172a; }
-    
-    /* 程式碼區塊 */
-    pre { background: #1e293b; color: #f8fafc; padding: 1rem; border-radius: 8px; overflow-x: auto; margin: 1em 0; }
-    code { font-family: monospace; background: #f1f5f9; padding: 0.2em 0.4em; border-radius: 4px; font-size: 0.9em; color: #db2777; }
-    pre code { background: transparent; padding: 0; color: inherit; }
-    
-    /* 表格樣式 */
-    table { width: 100%; border-collapse: collapse; margin: 1em 0; }
-    th, td { border: 1px solid #cbd5e1; padding: 0.75rem; text-align: left; }
-    th { background-color: #f8fafc; font-weight: bold; color: #0f172a; }
-    tr:nth-child(even) { background-color: #f1f5f9; }
-  }
+
+/* 確保所有元素不被 padding/border 撐開 */
+* {
+  box-sizing: border-box;
+  -webkit-font-smoothing: antialiased;
 }
-.loading-wrapper {
-  display: flex;
-  flex-direction: column;
+
+.app-container {
+  display: flex; 
+  flex-direction: column; 
+  height: 100vh; 
+  width: 100vw;
+  background: var(--bg-dark); 
+  color: var(--text-soft);
+  overflow: hidden; /* 防止最外層抖動 */
+}
+
+.top-bar {
+  height: 60px; 
+  display: flex; 
+  justify-content: space-between; 
   align-items: center;
-  justify-content: center;
-  height: 100%;
-  
-  .ai-pulse-circle {
-    width: 60px;
-    height: 60px;
-    background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
-    border-radius: 50%;
-    margin-bottom: 1.5rem;
-    position: relative;
-    
-    // 呼吸擴散特效
-    &::after {
-      content: '';
-      position: absolute;
-      top: 0; left: 0; right: 0; bottom: 0;
-      border-radius: 50%;
-      background: #3b82f6;
-      animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
-    }
-  }
+  padding: 0 24px; 
+  background: var(--bg-panel); 
+  border-bottom: 1px solid var(--border-dim); /* 變細變深 */
+  z-index: 10;
 
-  .loading-text {
-    .status-main {
-      font-weight: 600;
-      color: #1e293b;
-      margin: 0;
+  .brand { color: var(--accent); font-weight: 800; font-size: 1.1rem; letter-spacing: 0.5px; }
+  
+  .controls {
+    display: flex; gap: 12px;
+    input { 
+      background: var(--bg-dark); 
+      border: 1px solid var(--border-dim); 
+      color: #fff; 
+      padding: 6px 12px; 
+      border-radius: 4px; 
+      width: 220px; 
+      outline: none;
+      &:focus { border-color: var(--accent); }
     }
-    .status-sub {
-      font-size: 0.85rem;
-      color: #94a3b8;
-      margin-top: 4px;
+    .mode-select {
+        background: var(--bg-dark);
+        color: #fff;
+        border: 1px solid var(--border-dim);
+        padding: 6px;
+        border-radius: 4px;
+        outline: none;
+    }
+    .run-btn { 
+      background: var(--accent); 
+      color: #020617; 
+      font-weight: bold; 
+      border: none; 
+      padding: 8px 20px; 
+      border-radius: 4px; 
+      cursor: pointer; 
+      transition: opacity 0.2s;
+      &:hover { opacity: 0.9; }
+      &:disabled { background: #475569; cursor: not-allowed; }
     }
   }
 }
 
-@keyframes pulse-ring {
-  0% { transform: scale(0.8); opacity: 0.5; }
-  100% { transform: scale(2.2); opacity: 0; }
+.app-layout {
+  display: grid; 
+  flex: 1; 
+  overflow: hidden;
+  gap: 0; /* 徹底消除 Grid 間隙 */
+
+  /* 調整線：平常隱形，滑鼠移上去才發光 */
+  .resizer {
+    width: 4px; 
+    cursor: col-resize; 
+    background: var(--bg-dark); /* 平常與背景融合 */
+    transition: background 0.3s, box-shadow 0.3s;
+    z-index: 5;
+    
+    &:hover, &.active { 
+      background: var(--accent); 
+      box-shadow: 0 0 8px var(--accent); 
+    }
+  }
+
+  .logic-map {
+    background: var(--bg-dark); 
+    border-right: 1px solid var(--border-dim); 
+    overflow-y: auto;
+    scrollbar-width: none;
+    &::-webkit-scrollbar { display: none; }
+
+    .sidebar-header { padding: 18px 15px; color: var(--accent); font-weight: bold; font-size: 0.75rem; text-transform: uppercase; }
+    .nav-item { 
+        padding: 12px 20px; 
+        border-bottom: 1px solid rgba(255,255,255,0.03); 
+        cursor: pointer; 
+        font-size: 0.85rem; 
+        color: #94a3b8;
+        transition: 0.2s;
+        &:hover { background: var(--bg-main); color: var(--accent); }
+    }
+  }
+
+  .editor-area {
+    background: var(--bg-main); 
+    overflow: hidden;
+    position: relative;
+    border: none; /* 確保無邊框 */
+    
+    .sql-input, .code-viewer {
+      width: 100%; 
+      height: 100%; 
+      padding: 30px;
+      font-family: 'Fira Code', 'Consolas', monospace; 
+      font-size: 15px; 
+      line-height: 1.8;
+      border: none; 
+      outline: none; 
+      resize: none;
+      background: transparent;
+      color: var(--text-bright);
+      
+      scrollbar-width: none; 
+      -ms-overflow-style: none;
+      &::-webkit-scrollbar { display: none; }
+    }
+
+    .code-viewer {
+        white-space: pre;
+        overflow: auto;
+        color: #94a3b8;
+        
+        ::ng-deep .code-link {
+          color: #60a5fa;
+          text-decoration: underline;
+          cursor: help;
+          font-weight: bold;
+          padding: 0 2px;
+          border-radius: 2px;
+          &:hover {
+            background: rgba(56, 189, 248, 0.2);
+            color: #fff;
+          }
+        }
+    }
+
+    .back-btn {
+        position: absolute;
+        bottom: 20px;
+        right: 20px;
+        background: var(--bg-panel);
+        color: var(--accent);
+        border: 1px solid var(--accent);
+        padding: 8px 16px;
+        border-radius: 4px;
+        cursor: pointer;
+        z-index: 10;
+        &:hover { background: var(--accent); color: #000; }
+    }
+  }
+
+  .analysis-report {
+    background: #0b1120; 
+    border-left: 1px solid var(--border-dim); 
+    padding: 25px; 
+    overflow-y: auto;
+    
+    .report-header { 
+        color: var(--accent); 
+        font-weight: bold; 
+        margin-bottom: 20px; 
+        border-bottom: 1px solid var(--border-dim); 
+        padding-bottom: 12px;
+        font-size: 0.9rem;
+    }
+  }
+}
+
+/* 🌀 載入動畫樣式 */
+.loading-container {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; height: 300px;
+  .spinner { 
+    width: 40px; height: 40px; border: 3px solid rgba(56, 189, 248, 0.1); border-top: 3px solid var(--accent); 
+    border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 20px; 
+  }
+  p { color: var(--accent); font-size: 0.9rem; letter-spacing: 1px; }
+}
+
+@keyframes spin { 100% { transform: rotate(360deg); } }
+
+/* Markdown 樣式補強 */
+::ng-deep .markdown-body {
+  color: #cbd5e1 !important;
+  font-size: 0.95rem;
+  line-height: 1.7;
+  
+  h3 { color: var(--accent); margin-top: 30px; font-size: 1.1rem; }
+  pre { 
+    background: #000000 !important; 
+    border: 1px solid #1e293b; 
+    padding: 20px; 
+    border-radius: 8px; 
+    margin: 15px 0;
+  }
+  code { color: #f472b6; background: rgba(30, 41, 59, 0.5); padding: 2px 4px; border-radius: 4px; }
+  table { width: 100%; border-collapse: collapse; th, td { border: 1px solid #1e293b; padding: 10px; } }
+}
+
+/* 懸浮預覽卡片 */
+.peek-card {
+  position: fixed; 
+  z-index: 1000; 
+  background: var(--bg-panel); 
+  border: 1px solid var(--accent);
+  padding: 15px; 
+  border-radius: 8px; 
+  box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+  max-width: 350px; 
+  pointer-events: none;
+  backdrop-filter: blur(4px);
+  
+  .peek-name { color: var(--accent); font-weight: bold; font-size: 1rem; margin-bottom: 8px; border-bottom: 1px solid #334155; padding-bottom: 5px; }
+  .peek-summary { font-size: 0.85rem; line-height: 1.5; color: #f1f5f9; }
+}
+
+/* 跳轉高亮動畫 */
+::ng-deep .highlight-flash {
+  animation: flash 1.5s ease-out;
+}
+@keyframes flash { 
+    0% { background: rgba(56, 189, 248, 0.4); } 
+    100% { background: transparent; } 
 }

@@ -35,15 +35,57 @@ export class GeminiService {
 - **測試建議**：列出必須驗證的場景（含極端值）。
 - **優化代碼**：提供重構後「更簡潔、效能更好」的 SQL 代碼片段。
 
+### 🚨 重要：請在回覆的最末端，附加一個符合以下 JSON 格式的區塊，用於生成導航地圖。
+請將 JSON 包裹在 [MAP_START] 與 [MAP_END] 標籤之間。
+格式範例：
+[MAP_START]
+[
+  { "name": "PROC_MAIN", "type": "PROCEDURE", "summary": "主邏輯，負責調度 A 與 B", "calls": ["PROC_A", "FUNC_B"] },
+  { "name": "PROC_A", "type": "PROCEDURE", "summary": "更新資料庫表 TB_LOG", "calls": [] }
+]
+[MAP_END]
 ---
+
 待診斷/重構程式碼：\n${sql}`;
 
     // 🧠 模式 2：寫文件專用 Prompt
-    const docPrompt = `你是一位擁有 20 年經驗的資深 DBA。
-請幫我解析以下這段 SQL，並嚴格按照以下 Markdown 格式回覆，不要講多餘廢話：
-### 1. 📝 核心業務邏輯 (白話文總結)
-### 2. 🗄️ 資料表影響評估 (CRUD 表格)
-### 3. 💡 現代化重構建議
+    const docPrompt = `你是一位擁有 20 年經驗的頂尖 DBA 與系統架構師。
+請針對以下 SQL 進行「深度邏輯拆解與架構分析」。
+請嚴格遵守以下 Markdown 格式，禁止任何客套話與開場白：
+
+### 1. 📝 核心業務邏輯 (Business Flow)
+- 請用開發者與業務端都能理解的「白話文」描述這段程式碼的終極目標。
+- 描述核心觸發條件與最終產出的資料狀態。
+
+### 2. 🗄️ 資料表影響評估 (CRUD Analysis)
+| 資料表/視圖名稱 | 操作類型 (C/R/U/D) | 關鍵欄位 | 說明 |
+| :--- | :--- | :--- | :--- |
+| 範例 Table | Update | STATUS, UPD_TIME | 變更訂單狀態為已處理 |
+
+### 3. 🏗️ 程式邏輯階層 (Logic Hierarchy)
+- 請描述主程序與子程序之間的調度關係。
+- 說明中間變數（Global Variables）如何影響後續判斷。
+
+### 4. 💡 現代化重構建議
+- **效能面**：針對 Index 使用、Cursor 效能或迴圈優化給出具體建議。
+- **維護面**：如何提升代碼的可讀性與模組化程度。
+
+---
+### 🚨 系統指令（解析地圖）：
+請在回覆的最末端，附加一個符合以下 JSON 格式的區塊，用於生成導航地圖。
+請將 JSON 包裹在 [MAP_START] 與 [MAP_END] 標籤之間。
+
+[MAP_START]
+[
+  { 
+    "name": "子程序名稱", 
+    "type": "PROCEDURE 或 FUNCTION", 
+    "summary": "一句話描述此區塊的核心邏輯", 
+    "calls": ["呼叫的子程序1", "呼叫的子程序2"] 
+  }
+]
+[MAP_END]
+
 ---
 請解析以下程式碼：\n${sql}`;
 
