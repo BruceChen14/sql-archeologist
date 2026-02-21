@@ -11,21 +11,19 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 20 # 🔥 強制使用 Node 20，解決版本過舊報錯
+          cache: 'npm'     # 開啟快取，下次編譯會快很多
 
       - name: Install and Build
         run: |
-          npm install
-          # 使用 --output-path=dist 強制把檔案放在 dist 資料夾，不要多一層專案名
+          npm ci           # 比 npm install 更適合自動化環境的安裝指令
           npx ng build --base-href /sql-archeologist/ --output-path=dist
 
       - name: Deploy
         uses: JamesIves/github-pages-deploy-action@v4
         with:
-          # 因為上面強制輸出了，這裡路徑改為 dist/browser 
-          # (Angular 17+ 預設會多一個 browser 資料夾)
           folder: dist/browser
           branch: gh-pages
