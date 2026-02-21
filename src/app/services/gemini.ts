@@ -37,11 +37,19 @@ export class GeminiService {
 
 ### 🚨 重要：請在回覆的最末端，附加一個符合以下 JSON 格式的區塊，用於生成導航地圖。
 請將 JSON 包裹在 [MAP_START] 與 [MAP_END] 標籤之間。
-格式範例：
+特別注意：
+1. 找出所有本地定義的 PROCEDURE 與 FUNCTION。
+2. **外部依賴偵測**：若發現代碼呼叫了外部 Package（格式如 PKG_NAME.PROC_NAME），且該 Package 不在本次貼上的代碼內，請將其加入 JSON 並標註 "type": "EXTERNAL"。
+3. **功能推測**：針對 EXTERNAL 類型，請根據傳入參數與語境，在 summary 中推測其核心功能與可能的風險。
+
 [MAP_START]
 [
-  { "name": "PROC_MAIN", "type": "PROCEDURE", "summary": "主邏輯，負責調度 A 與 B", "calls": ["PROC_A", "FUNC_B"] },
-  { "name": "PROC_A", "type": "PROCEDURE", "summary": "更新資料庫表 TB_LOG", "calls": [] }
+  { 
+    "name": "本地或外部程式名", 
+    "type": "PROCEDURE / FUNCTION / EXTERNAL", 
+    "summary": "一句話描述邏輯 (EXTERNAL 則提供推測)", 
+    "calls": ["子程式1", "子程式2"] 
+  }
 ]
 [MAP_END]
 ---

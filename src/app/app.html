@@ -15,14 +15,18 @@
 
   <div class="app-layout" [style.grid-template-columns]="layoutConfig()">
     <aside class="logic-map">
-      <div class="sidebar-header">📍 結構目錄</div>
+      <div class="sidebar-header">📍 結構目錄 (含外部依賴)</div>
       <div class="nav-list">
         <div *ngFor="let p of subPrograms()" 
-             class="nav-item" 
-             (click)="scrollTo(p.name)"
-             (mouseenter)="handleHover($event, p.name)"
-             (mouseleave)="hidePeek()">
-          <span class="type-badge" [attr.data-type]="p.type">{{p.type[0]}}</span>
+          class="nav-item" 
+          [class.external-item]="p.type === 'EXTERNAL'"
+          (click)="p.type !== 'EXTERNAL' ? scrollTo(p.name) : null"
+          (mouseenter)="showPeek($event, p)"
+          (mouseleave)="hidePeek()">
+      
+          <span class="type-badge" [attr.data-type]="p.type">
+            {{ p.type === 'EXTERNAL' ? 'EXT' : p.type[0] }}
+          </span>
           <span class="name">{{p.name}}</span>
         </div>
       </div>
@@ -34,7 +38,7 @@
       <textarea *ngIf="!isAnalyzed()" 
                 [ngModel]="sqlInput()" 
                 (ngModelChange)="sqlInput.set($event)"
-                class="sql-input" placeholder="貼上代碼..."></textarea>
+                class="sql-input" placeholder="在此貼上 Package Body 代碼..."></textarea>
 
       <div *ngIf="isAnalyzed()" 
            class="code-viewer" 
@@ -52,13 +56,19 @@
       <div class="report-header">🧠 AI 診斷報告</div>
       <div class="loading-container" *ngIf="loading()"><div class="spinner"></div></div>
       <div class="markdown-body" *ngIf="!loading() && result()" [innerHTML]="parsedResult()"></div>
+      <div class="empty-state" *ngIf="!loading() && !result()">尚未開始分析</div>
     </section>
   </div>
 
   <div class="peek-card" *ngIf="peekData()" 
+       [class.external-peek]="peekData()?.isExternal"
        [style.left.px]="peekData()?.pos?.x" [style.top.px]="peekData()?.pos?.y">
+    
+    <div class="peek-header" *ngIf="peekData()?.isExternal">📡 外部相依預覽</div>
+    
     <div class="peek-name">{{peekData()?.name}}</div>
     <div class="peek-summary">{{peekData()?.summary}}</div>
+    
     <div class="peek-calls" *ngIf="peekData()?.calls?.length">
       <div class="call-title">🔗 內部呼叫：</div>
       <span *ngFor="let c of peekData()?.calls" class="call-tag">{{c}}</span>
