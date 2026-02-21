@@ -12,8 +12,8 @@ import { marked } from 'marked';
 })
 export class AppComponent {
   gemini = inject(GeminiService);
-  apiKey = signal(localStorage.getItem('G_KEY') || '');
-  selectedMode = signal(localStorage.getItem('SYS_MODE') || 'debug');
+  apiKey = signal(sessionStorage.getItem('G_KEY') || '');
+  selectedMode = signal(sessionStorage.getItem('SYS_MODE') || 'debug');
   sqlInput = signal('');
   result = signal('');
   loading = signal(false);
@@ -24,8 +24,8 @@ export class AppComponent {
   });
 
   constructor() {
-    effect(() => localStorage.setItem('G_KEY', this.apiKey()));
-    effect(() => localStorage.setItem('SYS_MODE', this.selectedMode()));
+    sessionStorage.setItem('G_KEY', this.apiKey());
+    sessionStorage.setItem('SYS_MODE', this.selectedMode());
   }
 
   // 🔥 新增：資安脫敏核心邏輯 (Regex)

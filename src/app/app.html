@@ -28,12 +28,21 @@
     </section>
 
     <section class="output-pane">
-      @if (result()) {
+      @if (loading()) {
+        <div class="loading-wrapper">
+          <div class="ai-pulse-circle"></div>
+          <div class="loading-text">
+            <p class="status-main">正在解析程式邏輯...</p>
+            <p class="status-sub">正在提取關鍵特徵並評估潛在風險</p>
+          </div>
+        </div>
+      } @else if (result()) {
         <div class="markdown-view" [innerHTML]="parsedResult()"></div>
-      } @else if (loading()) {
-        <div class="shimmer">🧬 AI 正在挖掘深層邏輯...</div>
       } @else {
-        <div class="empty-state">等待輸入 SQL 與 API Key...</div>
+        <div class="empty-state">
+          <div class="icon">🔍</div>
+          <p>請輸入 SQL 代碼開始分析</p>
+        </div>
       }
     </section>
   </div>
