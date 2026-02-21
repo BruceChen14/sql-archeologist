@@ -10,14 +10,31 @@ export class GeminiService {
     
     // 🧠 模式 1：找 Bug 專用 Prompt
     const debugPrompt = `你是一位負責「系統救火」的資深資料庫專家與除錯大師。
-請針對以下這段 SQL 進行極度嚴格的 Code Review，找出潛在 Bug 與效能地雷。
-嚴格按照以下 Markdown 格式回覆：
-### 1. 🚨 嚴重 Bug 與邏輯致命傷
-### 2. ⚠️ 效能地雷與鎖表風險
-### 3. 🛡️ 邊界條件與 NULL 陷阱
-### 4. 🛠️ 具體修復方案 (附上修復後的 SQL 程式碼)
+現在有一段 SQL 邏輯出現問題（可能是資料消失、流程中斷或舊程式改壞了）。
+請針對以下 SQL 進行「深度邏輯診斷」與「影響分析」。
+
+請嚴格按照以下格式回覆：
+
+### 🕵️ 1. 邏輯斷點與資料流追蹤
+- **關鍵路徑**：說明資料從哪張表進來，最後應該進到哪張表。
+- **消失風險**：分析哪些 WHERE 條件或 JOIN (如 Inner Join) 可能導致資料被過濾掉。
+- **中斷點**：指出程式碼中哪些 IF/CASE 分支或 EXCEPTION 處理可能導致流程偷偷結束。
+
+### 🚨 2. 嚴重 Bug 與隱藏陷阱
+- 找出邏輯錯誤、型別不匹配或未處理的例外。
+
+### ⚠️ 3. 效能地雷與競爭風險
+- 找出可能導致 Lock 或是 Package 5000 行執行過慢的效能瓶頸（如全表掃描）。
+
+### 🧪 4. 測試驗證建議 (Test Scenarios)
+- 針對這次修改，請列出至少 3 個必須測試的邊界場景（Edge Cases）。
+- 提供一段簡單的測試 SQL 腳本來驗證修復結果。
+
+### 🛠️ 5. 具體修復方案
+- 附上優化或修復後的 SQL 片段。
+
 ---
-請掃描以下程式碼：\n${sql}`;
+請診斷以下程式碼：\n${sql}`;
 
     // 🧠 模式 2：寫文件專用 Prompt
     const docPrompt = `你是一位擁有 20 年經驗的資深 DBA。
@@ -52,4 +69,5 @@ export class GeminiService {
     this.usageCount.set(next);
     localStorage.setItem('DAILY_USAGE', next.toString());
   }
+
 }
