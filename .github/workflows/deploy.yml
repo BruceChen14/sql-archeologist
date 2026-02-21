@@ -19,10 +19,13 @@ jobs:
       - name: Install and Build
         run: |
           npm install
-          npx ng build --base-href /sql-archeologist/
+          # 使用 --output-path=dist 強制把檔案放在 dist 資料夾，不要多一層專案名
+          npx ng build --base-href /sql-archeologist/ --output-path=dist
 
       - name: Deploy
         uses: JamesIves/github-pages-deploy-action@v4
         with:
-          folder: dist/sql-archeologist/browser
-          branch: gh-pages # 會自動幫你建這個分支
+          # 因為上面強制輸出了，這裡路徑改為 dist/browser 
+          # (Angular 17+ 預設會多一個 browser 資料夾)
+          folder: dist/browser
+          branch: gh-pages
