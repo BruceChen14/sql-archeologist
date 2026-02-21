@@ -1,0 +1,66 @@
+.main-wrapper { display: flex; flex-direction: column; height: 100vh; font-family: system-ui, sans-serif; background-color: #f8fafc; }
+header { display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.5rem; background-color: #1e293b; color: white;
+  .brand { font-size: 1.25rem; font-weight: bold; }
+  .controls { display: flex; align-items: center; gap: 1rem;
+    .usage { font-size: 0.875rem; color: #94a3b8; }
+    .mode-select, input { 
+      padding: 0.5rem; 
+      border-radius: 4px; 
+      border: 1px solid #475569; 
+      background: #334155; 
+      color: white; 
+      outline: none; 
+      font-size: 0.9rem;
+      &:focus { border-color: #3b82f6; } 
+    }
+    .mode-select { cursor: pointer; }
+  }
+}
+.editor-grid { display: flex; flex: 1; overflow: hidden;
+  .input-pane, .output-pane { flex: 1; display: flex; flex-direction: column; padding: 1rem; gap: 0.75rem; }
+  .input-pane { border-right: 1px solid #e2e8f0;
+    textarea { flex: 1; padding: 1rem; font-family: monospace; font-size: 0.875rem; border: 1px solid #cbd5e1; border-radius: 8px; resize: none; outline: none; &:focus { border-color: #3b82f6; box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2); } }
+    button { padding: 0.75rem; background-color: #2563eb; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: background 0.2s; &:hover:not(:disabled) { background-color: #1d4ed8; } &:disabled { background-color: #94a3b8; cursor: not-allowed; } }
+  }
+  .pane-toolbar {
+    display: flex; justify-content: space-between; align-items: center;
+    .pane-title { font-size: 0.875rem; font-weight: bold; color: #475569; }
+    
+    .sanitize-btn {
+      background-color: #10b981; /* 安全的綠色 */
+      color: white; border: none; padding: 0.4rem 0.8rem; border-radius: 6px;
+      font-size: 0.8rem; font-weight: bold; cursor: pointer; transition: background 0.2s;
+      &:hover { background-color: #059669; }
+    }
+  }
+  .output-pane { background-color: white; overflow-y: auto;
+    .markdown-view pre { white-space: pre-wrap; font-family: inherit; line-height: 1.6; color: #334155; }
+    .empty-state, .shimmer { display: flex; height: 100%; align-items: center; justify-content: center; color: #94a3b8; font-style: italic; }
+    .shimmer { animation: pulse 1.5s infinite; }
+  }
+  /* 🔥 Markdown 專屬美化樣式 */
+  .markdown-view {
+    line-height: 1.6;
+    color: #334155;
+    
+    h1, h2, h3 { font-weight: bold; color: #0f172a; margin-top: 1.5em; margin-bottom: 0.5em; }
+    h2 { font-size: 1.25em; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.3em; }
+    
+    ul { list-style-type: disc; padding-left: 1.5em; margin-bottom: 1em; }
+    ol { list-style-type: decimal; padding-left: 1.5em; margin-bottom: 1em; }
+    
+    strong { color: #0f172a; }
+    
+    /* 程式碼區塊 */
+    pre { background: #1e293b; color: #f8fafc; padding: 1rem; border-radius: 8px; overflow-x: auto; margin: 1em 0; }
+    code { font-family: monospace; background: #f1f5f9; padding: 0.2em 0.4em; border-radius: 4px; font-size: 0.9em; color: #db2777; }
+    pre code { background: transparent; padding: 0; color: inherit; }
+    
+    /* 表格樣式 */
+    table { width: 100%; border-collapse: collapse; margin: 1em 0; }
+    th, td { border: 1px solid #cbd5e1; padding: 0.75rem; text-align: left; }
+    th { background-color: #f8fafc; font-weight: bold; color: #0f172a; }
+    tr:nth-child(even) { background-color: #f1f5f9; }
+  }
+}
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }

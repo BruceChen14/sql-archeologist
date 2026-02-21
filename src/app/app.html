@@ -1,0 +1,40 @@
+<div class="main-wrapper">
+  <header>
+    <div class="brand">🏛️ SQL Archeologist</div>
+    <div class="controls">
+      <select [ngModel]="selectedMode()" (ngModelChange)="selectedMode.set($event)" class="mode-select">
+        <option value="debug">🐛 深度抓蟲模式</option>
+        <option value="document">📝 文件解析模式</option>
+      </select>
+      <span class="usage">今日請求：{{ gemini.usageCount() }}</span>
+      <input type="password" [ngModel]="apiKey()" (ngModelChange)="apiKey.set($event)" placeholder="輸入 Gemini API Key">
+    </div>
+  </header>
+
+  <div class="editor-grid">
+    <section class="input-pane">
+      <div class="pane-toolbar">
+        <span class="pane-title">1. 貼上原始碼並脫敏</span>
+        <button class="sanitize-btn" (click)="sanitizeSql()" title="一鍵隱藏 IP、Email 與密碼">
+          🛡️ 自動脫敏
+        </button>
+      </div>
+      
+      <textarea [ngModel]="sqlInput()" (ngModelChange)="sqlInput.set($event)" placeholder="在此貼上你的 SQL Store Package..."></textarea>
+      
+      <button class="run-btn" (click)="onRun()" [disabled]="loading() || !sqlInput() || !apiKey()">
+        {{ loading() ? '正在解構邏輯...' : '2. 開始分析' }}
+      </button>
+    </section>
+
+    <section class="output-pane">
+      @if (result()) {
+        <div class="markdown-view" [innerHTML]="parsedResult()"></div>
+      } @else if (loading()) {
+        <div class="shimmer">🧬 AI 正在挖掘深層邏輯...</div>
+      } @else {
+        <div class="empty-state">等待輸入 SQL 與 API Key...</div>
+      }
+    </section>
+  </div>
+</div>
