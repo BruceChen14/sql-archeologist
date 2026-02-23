@@ -1,281 +1,317 @@
-/* 1. 全域歸零：確保沒有任何白邊或間隙 */
-:host {
-  display: block;
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-
-  --bg-dark: #020617;   /* 極致深藍黑 */
-  --bg-main: #0f172a;   /* 編輯區背景 */
-  --bg-panel: #1e293b;  /* 頂欄與面板 */
-  --accent: #38bdf8;    /* 亮天藍色 */
-  --text-pure: #ffffff; /* 純白，最高對比 */
-  --text-soft: #cbd5e1; /* 柔和灰藍 */
-  --border-dim: #1e293b; /* 隱晦邊界色 */
-}
-
-* {
-  box-sizing: border-box;
-  -webkit-font-smoothing: antialiased;
-}
-
-.app-container {
-  display: flex;
-  flex-direction: column;
-  height: 100vh;
-  width: 100vw;
-  background: var(--bg-dark);
-  color: var(--text-soft);
-  overflow: hidden;
-}
-
-/* 2. 頂部工具列 */
-.top-bar {
-  height: 60px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0 24px;
-  background: var(--bg-panel);
-  border-bottom: 1px solid var(--border-dim);
-  z-index: 100;
-
-  .brand {
-    color: var(--accent);
-    font-weight: 800;
-    font-size: 1.1rem;
-    letter-spacing: 0.5px;
+/* ==========================================================================
+   1. 全域變數與初始化
+   ========================================================================== */
+   :host {
+    display: block;
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  
+    --bg-dark: #020617;     /* 極致深藍黑 - 背景 */
+    --bg-main: #0f172a;     /* 編輯區背景 */
+    --bg-panel: #1e293b;    /* 頂欄與面板背景 */
+    --accent: #38bdf8;      /* 亮天藍色 - 核心點綴 */
+    --accent-soft: rgba(56, 189, 248, 0.15);
+    --text-pure: #ffffff;   /* 純白 */
+    --text-soft: #cbd5e1;   /* 柔和灰藍 - 次要文字 */
+    --border-dim: #1e293b;  /* 隱晦邊界色 */
+    --danger: #f43f5e;      /* 警示紅 */
+    --success: #10b981;     /* 成功綠 */
+    --warning: #fbbf24;     /* 警告黃 */
+    --pink: #f472b6;        /* 分支標籤專用粉色 */
   }
-
-  .controls {
+  
+  * {
+    box-sizing: border-box;
+    -webkit-font-smoothing: antialiased;
+  }
+  
+  .app-container {
     display: flex;
-    gap: 12px;
-    input, .mode-select {
-      background: var(--bg-dark);
-      border: 1px solid var(--border-dim);
-      color: #fff;
-      padding: 6px 12px;
-      border-radius: 4px;
-      outline: none;
-      &:focus { border-color: var(--accent); }
-    }
-    .run-btn {
-      background: var(--accent);
-      color: #020617;
-      font-weight: bold;
-      border: none;
-      padding: 8px 20px;
-      border-radius: 4px;
-      cursor: pointer;
-      transition: all 0.2s;
-      &:hover { opacity: 0.9; transform: translateY(-1px); }
-      &:disabled { background: #475569; cursor: not-allowed; opacity: 0.5; }
-    }
-  }
-}
-
-/* 3. 主佈局與調整線 */
-.app-layout {
-  display: grid;
-  flex: 1;
-  overflow: hidden;
-  gap: 0;
-
-  .resizer {
-    width: 4px;
-    cursor: col-resize;
+    flex-direction: column;
+    height: 100vh;
+    width: 100vw;
     background: var(--bg-dark);
-    transition: background 0.3s;
-    z-index: 50;
-    &:hover, &.active {
-      background: var(--accent);
-      box-shadow: 0 0 10px var(--accent);
-    }
-  }
-
-  /* 左側導航 */
-  .logic-map {
-    background: var(--bg-dark);
-    border-right: 1px solid var(--border-dim);
-    overflow-y: auto;
-    scrollbar-width: none;
-    &::-webkit-scrollbar { display: none; }
-
-    .sidebar-header { padding: 18px 15px; color: var(--accent); font-weight: bold; font-size: 0.75rem; text-transform: uppercase; }
-    
-    .nav-item {
-      padding: 12px 20px;
-      border-bottom: 1px solid rgba(255,255,255,0.02);
-      cursor: pointer;
-      font-size: 0.85rem;
-      color: #94a3b8;
-      transition: 0.2s;
-      display: flex;
-      align-items: center;
-
-      &:hover { background: var(--bg-main); color: var(--accent); }
-
-      /* 💡 外部依賴樣式 */
-      &.external-item {
-        cursor: default;
-        opacity: 0.6;
-        border-left: 2px dashed #475569;
-        .name { font-style: italic; color: #64748b; }
-      }
-
-      .type-badge {
-        width: 22px;
-        height: 16px;
-        font-size: 9px;
-        margin-right: 10px;
-        border-radius: 3px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: #fff;
-        &[data-type="PROCEDURE"] { background: var(--accent); }
-        &[data-type="FUNCTION"] { background: #10b981; }
-        &[data-type="EXTERNAL"] { background: #475569; width: 26px; }
-      }
-    }
-  }
-
-  /* 中間考古區 */
-  .editor-area {
-    background: var(--bg-main);
+    color: var(--text-soft);
     overflow: hidden;
-    position: relative;
-
-    .sql-input, .code-viewer {
-      width: 100%;
-      height: 100%;
-      padding: 30px;
-      font-family: 'Fira Code', 'Consolas', monospace;
-      font-size: 15px;
-      line-height: 1.8;
-      border: none;
-      outline: none;
-      resize: none;
-      background: transparent;
+  }
+  
+  /* ==========================================================================
+     2. 頂部工具列 (Top Bar)
+     ========================================================================== */
+  .top-bar {
+    height: 60px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 24px;
+    background: var(--bg-panel);
+    border-bottom: 1px solid var(--border-dim);
+    z-index: 100;
+  
+    .brand {
+      color: var(--accent);
+      font-weight: 800;
+      font-size: 1.1rem;
+      letter-spacing: 0.5px;
+    }
+  
+    .controls {
+      display: flex;
+      gap: 12px;
+      input, .mode-select {
+        background: var(--bg-dark);
+        border: 1px solid var(--border-dim);
+        color: #fff;
+        padding: 6px 12px;
+        border-radius: 4px;
+        outline: none;
+        font-size: 0.9rem;
+        &:focus { border-color: var(--accent); }
+      }
+      .run-btn {
+        background: var(--accent);
+        color: #020617;
+        font-weight: bold;
+        border: none;
+        padding: 8px 20px;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: all 0.2s;
+        &:hover { opacity: 0.9; transform: translateY(-1px); }
+        &:disabled { background: #475569; cursor: not-allowed; opacity: 0.5; }
+      }
+    }
+  }
+  
+  /* ==========================================================================
+     3. 主佈局與調整線 (Layout & Resizer)
+     ========================================================================== */
+  .app-layout {
+    display: grid;
+    flex: 1;
+    overflow: hidden;
+    gap: 0;
+  
+    .resizer {
+      width: 4px;
+      cursor: col-resize;
+      background: var(--bg-dark);
+      transition: background 0.3s;
+      z-index: 50;
+      &:hover, &.active {
+        background: var(--accent);
+        box-shadow: 0 0 10px var(--accent);
+      }
+    }
+  
+    /* --- 左側：邏輯與追蹤地圖 --- */
+    .logic-map {
+      background: var(--bg-dark);
+      border-right: 1px solid var(--border-dim);
+      overflow-y: auto;
       scrollbar-width: none;
       &::-webkit-scrollbar { display: none; }
-    }
-
-    .sql-input { color: var(--text-pure); }
-
-    .code-viewer {
-      white-space: pre;
-      overflow: auto;
-      color: #94a3b8;
-
-      ::ng-deep .code-link {
-        color: #60a5fa;
-        text-decoration: underline;
-        cursor: help;
-        font-weight: bold;
-        padding: 0 2px;
-        border-radius: 2px;
-        &:hover {
-          background: rgba(56, 189, 248, 0.2);
-          color: #fff;
+  
+      .sidebar-header { padding: 18px 15px; color: var(--accent); font-weight: bold; font-size: 0.75rem; text-transform: uppercase; }
+      
+      .nav-item {
+        padding: 12px 20px;
+        border-bottom: 1px solid rgba(255,255,255,0.02);
+        cursor: pointer;
+        font-size: 0.85rem;
+        display: flex;
+        align-items: center;
+        &:hover { background: var(--bg-main); color: var(--accent); }
+  
+        &.external-item {
+          opacity: 0.6;
+          border-left: 2px dashed #475569;
+          .name { font-style: italic; color: #64748b; }
+        }
+  
+        .type-badge {
+          width: 22px; height: 16px; font-size: 9px; margin-right: 10px; border-radius: 3px;
+          display: flex; align-items: center; justify-content: center; color: #fff;
+          &[data-type="PROCEDURE"] { background: var(--accent); }
+          &[data-type="FUNCTION"] { background: var(--success); }
+          &[data-type="EXTERNAL"] { background: #475569; width: 26px; }
+        }
+      }
+  
+      /* 💡 Trace 模式時間軸 */
+      .trace-timeline {
+        margin-left: 35px;
+        border-left: 1px solid #334155;
+        padding: 5px 0 15px 0;
+  
+        .trace-step {
+          padding: 10px 15px;
+          cursor: pointer;
+          position: relative;
+          transition: 0.2s;
+  
+          &:hover { background: rgba(56, 189, 248, 0.05); }
+          
+          /* 選中狀態高亮 */
+          &.active-step {
+            background: var(--accent-soft);
+            border-right: 3px solid var(--accent);
+            .step-dot { background: var(--accent); box-shadow: 0 0 8px var(--accent); }
+          }
+  
+          .step-dot {
+            width: 8px; height: 8px; background: #475569;
+            border-radius: 50%; position: absolute; left: -4.5px; top: 14px;
+            transition: 0.3s;
+          }
+  
+          .step-top { display: flex; justify-content: space-between; font-size: 0.7rem; margin-bottom: 4px; }
+          .step-label { background: #1e293b; padding: 1px 4px; border-radius: 3px; color: var(--accent); font-weight: bold; }
+          .step-line { color: #475569; }
+  
+          /* 💡 分支標籤樣式 */
+          .step-branch {
+            font-size: 0.75rem;
+            color: var(--pink);
+            background: rgba(244, 114, 182, 0.1);
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-bottom: 6px;
+            font-family: 'Fira Code', monospace;
+            .branch-icon { font-weight: bold; }
+          }
+  
+          .step-desc { font-size: 0.82rem; color: #cbd5e1; line-height: 1.4; }
+          .step-impact { font-size: 0.75rem; color: var(--warning); margin-top: 5px; font-style: italic; }
         }
       }
     }
-
-    .reset-btn {
-      position: absolute; top: 20px; right: 20px;
-      background: var(--bg-panel); color: var(--accent);
-      border: 1px solid var(--accent); padding: 6px 14px;
-      border-radius: 4px; cursor: pointer; z-index: 10;
-      font-size: 0.8rem;
-      &:hover { background: var(--accent); color: #000; }
+  
+    /* --- 中間：代碼考古區 --- */
+    .editor-area {
+      background: var(--bg-main);
+      overflow: hidden;
+      position: relative;
+  
+      .sql-input {
+        width: 100%; height: 100%; padding: 30px;
+        font-family: 'Fira Code', monospace; font-size: 15px; line-height: 1.8;
+        background: transparent; color: var(--text-pure); border: none; outline: none; resize: none;
+      }
+  
+      .code-viewer {
+        width: 100%; height: 100%; overflow: auto;
+        scrollbar-width: none; &::-webkit-scrollbar { display: none; }
+  
+        ::ng-deep .code-line {
+          display: flex; gap: 15px;
+          &:hover { background: rgba(255,255,255,0.02); }
+          
+          .line-num-gutter {
+            width: 50px; text-align: right; color: #475569; font-size: 0.75rem;
+            user-select: none; border-right: 1px solid rgba(255,255,255,0.05); padding-right: 10px;
+          }
+          .line-text { white-space: pre; color: #94a3b8; font-family: 'Fira Code', monospace; }
+  
+          .code-link {
+            color: #60a5fa; text-decoration: underline; cursor: help; font-weight: bold;
+            &:hover { background: var(--accent-soft); color: #fff; }
+          }
+        }
+      }
+  
+      .reset-btn {
+        position: absolute; top: 20px; right: 20px;
+        background: var(--bg-panel); color: var(--accent);
+        border: 1px solid var(--accent); padding: 6px 14px;
+        border-radius: 4px; cursor: pointer; z-index: 10;
+        &:hover { background: var(--accent); color: #000; }
+      }
+    }
+  
+    /* --- 右側：報告與變數觀察窗 --- */
+    .analysis-report {
+      background: #0b1120;
+      border-left: 1px solid var(--border-dim);
+      padding: 25px;
+      overflow-y: auto;
+  
+      /* 💡 變數觀察窗樣式 */
+      .variable-watch-window {
+        background: #020617;
+        border: 1px solid var(--accent);
+        border-radius: 8px;
+        margin-bottom: 25px;
+        overflow: hidden;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  
+        .watch-header {
+          background: var(--accent);
+          color: #020617;
+          padding: 6px 15px;
+          font-size: 0.75rem;
+          font-weight: 800;
+          display: flex;
+          justify-content: space-between;
+        }
+  
+        .watch-table {
+          .watch-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            border-bottom: 1px solid #1e293b;
+            padding: 8px 15px;
+            font-size: 0.85rem;
+            font-family: 'Fira Code', monospace;
+  
+            &.header {
+              background: rgba(255,255,255,0.03);
+              color: #64748b;
+              font-size: 0.7rem;
+              text-transform: uppercase;
+            }
+            .v-name { color: #94a3b8; }
+            .v-value { color: var(--warning); font-weight: bold; }
+          }
+          .no-vars { padding: 20px; color: #475569; font-size: 0.8rem; text-align: center; font-style: italic; }
+        }
+      }
+  
+      .report-header { color: var(--accent); font-weight: bold; margin-bottom: 20px; border-bottom: 1px solid var(--border-dim); padding-bottom: 12px; }
     }
   }
-
-  /* 右側報告區 */
-  .analysis-report {
-    background: #0b1120;
-    border-left: 1px solid var(--border-dim);
-    padding: 25px;
-    overflow-y: auto;
-    .report-header { color: var(--accent); font-weight: bold; margin-bottom: 20px; border-bottom: 1px solid var(--border-dim); padding-bottom: 12px; }
+  
+  /* ==========================================================================
+     4. 輔助組件 (Peek, Loading, Markdown)
+     ========================================================================== */
+  
+  .peek-card {
+    position: fixed; z-index: 9999; background: var(--bg-panel); border: 1px solid var(--accent);
+    padding: 15px; border-radius: 10px; box-shadow: 0 15px 35px rgba(0,0,0,0.6);
+    max-width: 380px; pointer-events: none; backdrop-filter: blur(8px);
+    .peek-name { color: var(--accent); font-weight: 800; border-bottom: 1px solid #334155; margin-bottom: 8px; padding-bottom: 5px; }
+    .peek-summary { font-size: 0.85rem; line-height: 1.6; color: #f1f5f9; }
+    &.external-peek { border: 1px dashed #94a3b8; .peek-header { background: rgba(71,85,105,0.3); padding: 3px 8px; font-size: 0.7rem; margin-bottom: 10px; display: inline-block; border-radius: 4px; } }
   }
-}
-
-/* 4. 懸浮預覽卡片 (Peek Card) */
-.peek-card {
-  position: fixed;
-  z-index: 9999;
-  background: var(--bg-panel);
-  border: 1px solid var(--accent);
-  padding: 15px;
-  border-radius: 10px;
-  box-shadow: 0 15px 35px rgba(0,0,0,0.6);
-  max-width: 350px;
-  pointer-events: none;
-  backdrop-filter: blur(8px);
-
-  .peek-name { color: var(--accent); font-weight: 800; font-size: 1rem; margin-bottom: 8px; border-bottom: 1px solid #334155; padding-bottom: 5px; }
-  .peek-summary { font-size: 0.85rem; line-height: 1.6; color: #f1f5f9; }
-
-  /* 🔗 內部呼叫標籤樣式 */
-  .peek-calls {
-    margin-top: 12px;
-    .call-title { font-size: 0.75rem; color: #64748b; margin-bottom: 6px; }
-    .call-tag {
-      display: inline-block;
-      background: #020617;
-      color: var(--accent);
-      padding: 2px 8px;
-      border-radius: 4px;
-      font-size: 0.75rem;
-      margin: 0 4px 4px 0;
-      border: 1px solid rgba(56, 189, 248, 0.2);
-    }
+  
+  .loading-container {
+    display: flex; flex-direction: column; align-items: center; justify-content: center; height: 300px;
+    .spinner { width: 40px; height: 40px; border: 3px solid rgba(56, 189, 248, 0.1); border-top: 3px solid var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 20px; }
+    p { color: var(--accent); font-size: 0.9rem; letter-spacing: 1px; }
   }
-
-  /* 💡 外部預覽模式 (EXT) */
-  &.external-peek {
-    border: 1px dashed #94a3b8;
-    background: #1e293b;
-    .peek-header {
-      background: rgba(71, 85, 105, 0.3);
-      padding: 3px 8px;
-      font-size: 0.7rem;
-      color: #94a3b8;
-      margin-bottom: 10px;
-      display: inline-block;
-      border-radius: 4px;
-      letter-spacing: 1px;
-    }
-    .peek-name { color: #94a3b8; }
+  
+  @keyframes spin { 100% { transform: rotate(360deg); } }
+  
+  ::ng-deep .markdown-body {
+    color: #cbd5e1 !important;
+    h3 { color: var(--accent); margin-top: 30px; font-size: 1.1rem; border-bottom: 1px solid #1e293b; padding-bottom: 8px; }
+    pre { background: #000 !important; border: 1px solid #1e293b; padding: 20px; border-radius: 8px; margin: 15px 0; overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; margin: 20px 0; th, td { border: 1px solid #1e293b; padding: 12px; } th { background: #1e293b; color: #fff; } }
   }
-}
-
-/* 🌀 載入動畫 */
-.loading-container {
-  display: flex; flex-direction: column; align-items: center; justify-content: center; height: 300px;
-  .spinner { width: 40px; height: 40px; border: 3px solid rgba(56, 189, 248, 0.1); border-top: 3px solid var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 20px; }
-  p { color: var(--accent); font-size: 0.9rem; letter-spacing: 1px; }
-}
-
-@keyframes spin { 100% { transform: rotate(360deg); } }
-
-/* Markdown 內容渲染 */
-::ng-deep .markdown-body {
-  color: #cbd5e1 !important;
-  font-size: 0.95rem; line-height: 1.7;
-  h3 { color: var(--accent); margin-top: 30px; font-size: 1.1rem; border-bottom: 1px solid #1e293b; padding-bottom: 8px; }
-  pre { background: #000000 !important; border: 1px solid #1e293b; padding: 20px; border-radius: 8px; margin: 15px 0; overflow-x: auto; }
-  code { color: #f472b6; background: rgba(30, 41, 59, 0.5); padding: 2px 4px; border-radius: 4px; }
-  table { width: 100%; border-collapse: collapse; margin: 20px 0; th, td { border: 1px solid #1e293b; padding: 12px; } th { background: #1e293b; color: #fff; } }
-}
-
-/* 跳轉閃爍動畫 */
-::ng-deep .highlight-flash {
-  animation: flash-animation 2s cubic-bezier(0.4, 0, 0.2, 1);
-}
-@keyframes flash-animation { 
-  0% { background-color: rgba(56, 189, 248, 0.4); } 
-  100% { background-color: transparent; } 
-}
+  
+  /* 跳轉閃爍動畫 */
+  ::ng-deep .highlight-line-flash {
+    animation: flash-bg 2.5s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  @keyframes flash-bg { 0% { background: rgba(56, 189, 248, 0.4); } 100% { background: transparent; } }

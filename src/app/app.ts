@@ -5,11 +5,23 @@ import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { GeminiService } from './services/gemini';
 import { marked } from 'marked';
 
+// 💡 完整介面：支援分支與變數觀察
+interface TraceStep {
+  label: string; 
+  desc: string; 
+  line: number; 
+  anchor?: string;
+  impact: string;
+  branch?: string;    // 👈 新增：邏輯分支條件
+  vars?: { name: string, value: string }[]; // 👈 新增：變數快照
+}
+
 interface SubProgram {
   name: string;
-  type: string; // PROCEDURE, FUNCTION, 或 EXTERNAL
+  type: string; 
   summary: string;
   calls?: string[];
+  steps?: TraceStep[];
 }
 
 @Component({
@@ -31,25 +43,29 @@ export class AppComponent {
   loading = signal(false);
   isAnalyzed = signal(false); 
 
-  // 2. 導航與互動
+  // 2. 導航與互動資料
   subPrograms = signal<SubProgram[]>([]);
   renderedCode = signal<SafeHtml>('');
   
-  // 💡 修正：在此定義 peekData 的型別，包含 isExternal
+  // 💡 新增：目前選中的執行步驟 (用於變數觀察窗)
+  selectedStep = signal<TraceStep | null>(null);
+
   peekData = signal<{ 
     name: string, 
     summary: string, 
     calls?: string[], 
-    isExternal: boolean, // 👈 新增此屬性
+    isExternal: boolean, 
     pos: { x: number, y: number } 
   } | null>(null);
 
-  // 3. 佈局
-  layoutConfig = signal('260px 4px 1fr 4px 450px');
+  // 3. 佈局設定
+  layoutConfig = signal('280px 4px 1fr 4px 450px');
   resizingPart: 'map' | 'report' | null = null;
 
+  // 4. 計算屬性：解析 Markdown 報告
   parsedResult = computed(() => {
     const raw = this.result();
+    // 移除 JSON 地圖區塊後再渲染 Markdown
     return raw ? marked.parse(raw.replace(/\[MAP_START\][\s\S]*?\[MAP_END\]/, '')) : '';
   });
 
@@ -75,13 +91,26 @@ export class AppComponent {
     this.loading.set(true);
     this.result.set('');
     this.isAnalyzed.set(false);
+    this.selectedStep.set(null); // 清除舊的選中步驟
 
     try {
       const output = await this.gemini.analyzeSql(this.sqlInput(), this.apiKey(), this.selectedMode());
       this.result.set(output);
 
       const match = output.match(/\[MAP_START\]([\s\S]*?)\[MAP_END\]/);
-      if (match) this.subPrograms.set(JSON.parse(match[1]));
+      if (match) {
+        let jsonString = match[1].trim();
+        
+        // 🧼 如果 AI 頑皮加了 ```json，把它們濾掉
+        jsonString = jsonString.replace(/^```json/, '').replace(/```$/, '').trim();
+        
+        try {
+          this.subPrograms.set(JSON.parse(jsonString));
+        } catch (jsonErr) {
+          console.error("JSON 解析失敗，內容為：", jsonString);
+          throw new Error("AI 回傳的 JSON 格式不完整，可能是因為 SQL 過長導致回傳被切斷。");
+        }
+      }
 
       this.generateInteractiveView();
       this.isAnalyzed.set(true); 
@@ -92,15 +121,30 @@ export class AppComponent {
     }
   }
 
+  // 💡 渲染：帶有行號與 ID 的程式碼檢視器
   generateInteractiveView() {
-    let html = this.sqlInput()
-      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    const lines = this.sqlInput().split('\n');
+    let html = '';
 
-    this.subPrograms().forEach(p => {
-      // 外部依賴通常包含點號，正則需特別處理
-      const escapedName = p.name.replace(/\./g, '\\.');
-      const reg = new RegExp(`\\b${escapedName}\\b`, 'gi');
-      html = html.replace(reg, `<span class="code-link" data-name="${p.name}">${p.name}</span>`);
+    lines.forEach((lineText, index) => {
+      const lineNum = index + 1;
+      let processedLine = lineText
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+
+      // 高亮程序名稱
+      this.subPrograms().forEach(p => {
+        const escapedName = p.name.replace(/\./g, '\\.');
+        const reg = new RegExp(`\\b${escapedName}\\b`, 'gi');
+        processedLine = processedLine.replace(reg, `<span class="code-link" data-name="${p.name}">${p.name}</span>`);
+      });
+
+      html += `
+        <div class="code-line" id="L-${lineNum}">
+          <span class="line-num-gutter">${lineNum}</span>
+          <span class="line-text">${processedLine || ' '}</span>
+        </div>`;
     });
 
     this.renderedCode.set(this.sanitizer.bypassSecurityTrustHtml(html));
@@ -108,7 +152,51 @@ export class AppComponent {
 
   // --- 互動事件 ---
 
-  // 💡 修正：handleHover (代碼區 span 使用) 現在也會帶入 isExternal 狀態
+  // 💡 選取步驟：觸發跳轉並開啟變數觀察
+  selectStep(step: TraceStep) {
+    this.selectedStep.set(step);
+    
+    // 🔍 搜尋「真正」的行號
+    let realLine = step.line;
+    const rawCode = this.sqlInput();
+    
+    if (step.anchor && rawCode) {
+      const lines = rawCode.split('\n');
+      // 尋找包含 anchor 內容的那一行 (忽略前後空白)
+      const foundIndex = lines.findIndex(l => 
+        l.trim().includes(step.anchor!.trim())
+      );
+      
+      if (foundIndex !== -1) {
+        realLine = foundIndex + 1; // 修正為真實行號
+      }
+    }
+  
+    this.scrollToLine(realLine);
+  }
+
+  scrollToLine(lineNum: number) {
+    if (!lineNum) return;
+    const el = document.getElementById(`L-${lineNum}`);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      el.classList.add('highlight-line-flash');
+      setTimeout(() => el.classList.remove('highlight-line-flash'), 2000);
+    }
+  }
+
+  scrollTo(name: string) {
+    const el = document.querySelector(`span[data-name="${name}"]`);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      const lineEl = el.closest('.code-line');
+      if (lineEl) {
+        lineEl.classList.add('highlight-line-flash');
+        setTimeout(() => lineEl.classList.remove('highlight-line-flash'), 2000);
+      }
+    }
+  }
+
   handleHover(event: MouseEvent, name?: string) {
     const targetName = name || (event.target as HTMLElement).getAttribute('data-name');
     if (targetName) {
@@ -119,7 +207,7 @@ export class AppComponent {
           name: prog.name,
           summary: isExt ? `🔮 AI 推測功能：${prog.summary}` : prog.summary,
           calls: prog.calls,
-          isExternal: isExt, // 👈 設定正確狀態
+          isExternal: isExt,
           pos: { x: event.clientX + 15, y: event.clientY + 15 }
         });
       }
@@ -128,24 +216,20 @@ export class AppComponent {
 
   hidePeek() { this.peekData.set(null); }
 
-  scrollTo(name: string) {
-    const el = document.querySelector(`span[data-name="${name}"]`);
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      el.classList.add('highlight-flash');
-      setTimeout(() => el.classList.remove('highlight-flash'), 2000);
-    }
-  }
-
-  // 💡 修正：showPeek (左側導航清單使用)
   showPeek(event: MouseEvent, prog: SubProgram) {
     const isExt = prog.type === 'EXTERNAL';
     this.peekData.set({
       name: prog.name,
       summary: isExt ? `🔮 AI 推測功能：${prog.summary}` : prog.summary,
       calls: prog.calls,
-      isExternal: isExt, // 👈 設定正確狀態
+      isExternal: isExt,
       pos: { x: event.clientX + 20, y: event.clientY - 20 }
     });
+  }
+
+  // 重新輸入
+  reset() {
+    this.isAnalyzed.set(false);
+    this.selectedStep.set(null);
   }
 }
