@@ -121,12 +121,12 @@ ${getJsonInstruction(true)}
           model: 'qwen2.5-coder:7b',
           prompt: prompt,
           stream: false,
-          // 💡 針對 100-500 行 SQL 的最佳化參數
           options: {
-            num_ctx: 16384,     // 🧠 調降到 16k，能讓 CPU 預處理變快，顯存壓力也較小
-            num_predict: -1,    // 🚀 強制 AI 把話說完，不論 JSON 多長都不會被切斷
-            temperature: 0.1,   // 降低隨機性，確保 JSON 結構百分之百正確
-            top_p: 0.9          // 保持邏輯嚴謹
+            num_ctx: 16384,     // 讀取長度：100-500 行 SQL 夠用了
+            num_predict: -1,    // 🚀 關鍵：設為 -1 代表「不限長度」，讓 AI 務必把 JSON 寫完
+            temperature: 0.1,   // 降低隨機性，防止 AI 廢話太多
+            main_gpu: 0,        // 確保強制使用第一張顯卡 (你的 5060)
+            low_vram: false     // 你的 8GB 夠跑 7B 模型，不需要開低顯存模式
           }
         }),
       });
@@ -134,19 +134,22 @@ ${getJsonInstruction(true)}
       if (!response.ok) throw new Error('地端顯卡拒絕連線');
       
       const data = await response.json();
-      
-      // 💡 雙重清洗：確保回傳的是純淨內容
-      let cleanText = data.response;
-      
-      // 如果 AI 沒寫完 (沒有 [MAP_END])，進行補齊嘗試
-      if (cleanText.includes('[MAP_START]') && !cleanText.includes('[MAP_END]')) {
-        console.warn('偵測到 JSON 截斷，補齊中...');
-        cleanText += '\n]\n[MAP_END]';
+      let result = data.response;
+  
+      // 💡 強力修復邏輯：如果 AI 真的還是漏了結尾，我們手動補上
+      if (result.includes('[MAP_START]') && !result.includes('[MAP_END]')) {
+        console.warn('偵測到 JSON 損壞，啟動考古修復程序...');
+        
+        // 檢查是否少了最後的括號
+        if (!result.trim().endsWith(']')) {
+           result += '\n  ]\n';
+        }
+        result += '[MAP_END]';
       }
   
-      return this.cleanAiResponse(cleanText);
+      return this.cleanAiResponse(result);
     } catch (error) {
-      throw new Error('考古機發生故障：' + error);
+      throw new Error('考古機連線異常，請確認 ngrok 是否還開著？');
     }
   }
 
