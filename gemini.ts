@@ -7,7 +7,7 @@ export class GeminiService {
   
   // 🏠 地端 Ollama API 配置 (指向你剛才測試成功的 11434 埠)
   //private localOllamaUrl = 'http://localhost:11434/api/generate';
-  private localOllamaUrl = 'https://unmultiplicable-kelsey-unclearable.ngrok-free.dev';
+  private localOllamaUrl = 'https://unmultiplicable-kelsey-unclearable.ngrok-free.dev/api/generate';
 
   usageCount = signal(Number(localStorage.getItem('DAILY_USAGE')) || 0);
 
