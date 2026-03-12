@@ -3,7 +3,7 @@ import { Injectable, signal } from '@angular/core';
 @Injectable({ providedIn: 'root' })
 export class GeminiService {
   // 🌟 雲端 Gemini API 配置 (保持你原本的設定)
-  private apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent'; 
+  private apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent'; 
   
   // 🏠 地端 Ollama API 配置 (指向你剛才測試成功的 11434 埠)
   //private localOllamaUrl = 'http://localhost:11434/api/generate';
