@@ -1,0 +1,426 @@
+/* ==========================================================================
+   1. 全域變數與初始化 (保持你的精美配色)
+   ========================================================================== */
+   :host {
+    display: block;
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  
+    --bg-dark: #020617;     /* 極致深藍黑 - 背景 */
+    --bg-main: #0f172a;     /* 編輯區背景 */
+    --bg-panel: #1e293b;    /* 頂欄與面板背景 */
+    --accent: #38bdf8;      /* 亮天藍色 - 核心點綴 */
+    --accent-soft: rgba(56, 189, 248, 0.15);
+    --text-pure: #ffffff;   /* 純白 */
+    --text-soft: #cbd5e1;   /* 柔和灰藍 - 次要文字 */
+    --border-dim: #1e293b;  /* 隱晦邊界色 */
+    --danger: #f43f5e;      /* 警示紅 */
+    --success: #10b981;     /* 成功綠 */
+    --warning: #fbbf24;     /* 警告黃 */
+    --pink: #f472b6;        /* 分支標籤專用粉色 */
+  }
+  
+  * {
+    box-sizing: border-box;
+    -webkit-font-smoothing: antialiased;
+  }
+  
+  .app-container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    width: 100vw;
+    background: var(--bg-dark);
+    color: var(--text-soft);
+    overflow: hidden;
+  }
+  
+  /* ==========================================================================
+     2. 頂部工具列 (Top Bar)
+     ========================================================================== */
+  .top-bar {
+    height: 60px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 24px;
+    background: var(--bg-panel);
+    border-bottom: 1px solid var(--border-dim);
+    z-index: 100;
+  
+    .brand {
+      color: var(--accent);
+      font-weight: 800;
+      font-size: 1.1rem;
+      letter-spacing: 0.5px;
+      small { font-weight: 400; font-size: 0.7rem; opacity: 0.6; margin-left: 8px; }
+    }
+  
+    .controls {
+      display: flex;
+      gap: 12px;
+      input, .mode-select {
+        background: var(--bg-dark);
+        border: 1px solid var(--border-dim);
+        color: #fff;
+        padding: 6px 12px;
+        border-radius: 4px;
+        outline: none;
+        font-size: 0.9rem;
+        cursor: pointer;
+        &:focus { border-color: var(--accent); }
+      }
+      .run-btn {
+        background: var(--accent);
+        color: #020617;
+        font-weight: bold;
+        border: none;
+        padding: 8px 20px;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: all 0.2s;
+        &:hover { opacity: 0.9; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(56, 189, 248, 0.3); }
+        &:disabled { background: #475569; cursor: not-allowed; opacity: 0.5; }
+      }
+    }
+  }
+  
+  /* ==========================================================================
+     3. 主佈局與左側導航 (Logic Map)
+     ========================================================================== */
+  .app-layout {
+    display: grid;
+    flex: 1;
+    overflow: hidden;
+  
+    .resizer {
+      width: 4px;
+      cursor: col-resize;
+      background: var(--bg-dark);
+      transition: background 0.3s;
+      z-index: 50;
+      &:hover, &.active {
+        background: var(--accent);
+        box-shadow: 0 0 10px var(--accent);
+      }
+    }
+  
+    .logic-map {
+      background: var(--bg-dark);
+      border-right: 1px solid var(--border-dim);
+      overflow-y: auto;
+      scrollbar-width: none;
+      &::-webkit-scrollbar { display: none; }
+  
+      .sidebar-header { padding: 18px 15px; color: var(--accent); font-weight: bold; font-size: 0.75rem; text-transform: uppercase; }
+      
+      .nav-item {
+        padding: 10px 20px;
+        border-bottom: 1px solid rgba(255,255,255,0.02);
+        cursor: pointer;
+        font-size: 0.85rem;
+        display: flex;
+        align-items: center;
+        transition: 0.2s;
+        &:hover { background: var(--bg-main); color: var(--accent); }
+  
+        &.external-item {
+          opacity: 0.6;
+          border-left: 2px dashed #475569;
+          .name { font-style: italic; color: #64748b; }
+        }
+  
+        .type-badge {
+          width: 22px; height: 16px; font-size: 9px; margin-right: 10px; border-radius: 3px;
+          display: flex; align-items: center; justify-content: center; color: #fff;
+          &[data-type="PROCEDURE"] { background: var(--accent); }
+          &[data-type="FUNCTION"] { background: var(--success); }
+          &[data-type="EXTERNAL"] { background: #475569; width: 26px; }
+        }
+      }
+  
+      .trace-timeline {
+        margin-left: 35px;
+        border-left: 1px solid #334155;
+        padding: 5px 0 15px 0;
+  
+        .trace-step {
+          padding: 8px 15px;
+          cursor: pointer;
+          position: relative;
+          transition: 0.2s;
+          &:hover { background: rgba(56, 189, 248, 0.05); }
+          
+          &.active-step {
+            background: var(--accent-soft);
+            border-right: 3px solid var(--accent);
+            .step-dot { background: var(--accent); box-shadow: 0 0 8px var(--accent); }
+          }
+  
+          .step-dot {
+            width: 8px; height: 8px; background: #475569;
+            border-radius: 50%; position: absolute; left: -4.5px; top: 12px;
+            transition: 0.3s;
+          }
+  
+          .step-top { display: flex; justify-content: space-between; font-size: 0.7rem; margin-bottom: 4px; }
+          .step-label { background: #1e293b; padding: 1px 4px; border-radius: 3px; color: var(--accent); font-weight: bold; }
+          .step-line { color: #475569; }
+          .step-desc { font-size: 0.8rem; color: #cbd5e1; line-height: 1.4; }
+          .step-impact { font-size: 0.72rem; color: var(--warning); margin-top: 5px; font-style: italic; opacity: 0.9; }
+        }
+      }
+    }
+  
+    /* ==========================================================================
+       4. 中間：代碼考古區
+       ========================================================================== */
+    .editor-area {
+      background: var(--bg-main);
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      height: 100%;    // 確保填滿 Grid 區塊
+      width: 100%;
+      overflow: hidden; // 避免外層容器出現捲軸
+      .sql-input, .code-viewer {
+        flex: 1;          // 自動佔滿剩餘空間
+        min-height: 0;    // 🚀 關鍵修正：這行能防止 Flex 子元素塌陷為 0
+        width: 100%;
+        display: block;   // 確保區塊顯示
+      }
+    
+      .sql-input {
+        height: 100% !important; // 在未分析狀態下撐開
+        padding: 30px;
+        font-family: 'Fira Code', monospace;
+        font-size: 15px;
+        line-height: 1.8;
+        background: transparent;
+        color: var(--text-pure);
+        border: none;
+        outline: none;
+        resize: none;
+      }
+    
+      .code-viewer {
+        background: var(--bg-main);
+        overflow: auto;   // 🚀 讓 code 可以捲動
+        padding: 20px 0;  // 留點上下間距比較好讀
+        
+        // 確保內部的 code-line 正常顯示
+        ::ng-deep .code-line {
+          display: flex;
+          gap: 15px;
+          min-height: 1.8em; // 確保每一行都有高度
+          
+          .line-num-gutter {
+            flex-shrink: 0;  // 行號欄不准縮小
+            width: 50px;
+            text-align: right;
+            color: #475569;
+            padding-right: 10px;
+            border-right: 1px solid rgba(255,255,255,0.05);
+          }
+          .line-text {
+            white-space: pre; // 🚀 關鍵：保留原始格式
+            word-wrap: normal;
+            overflow-x: visible;
+            color: #94a3b8;
+          }
+        }
+      }
+  
+      .reset-btn {
+        position: absolute; top: 20px; right: 20px;
+        background: var(--bg-panel); color: var(--accent);
+        border: 1px solid var(--accent); padding: 6px 14px;
+        border-radius: 4px; cursor: pointer; z-index: 10; font-size: 0.8rem;
+        &:hover { background: var(--accent); color: #000; }
+      }
+      .debug-params-bar {
+        flex-shrink: 0;
+        background: #1e293b; // 比背景稍亮一點的藍灰色
+        padding: 12px 20px;
+        border-bottom: 1px solid var(--accent);
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    
+        .params-label {
+          font-size: 0.75rem;
+          font-weight: bold;
+          color: var(--accent);
+          text-transform: uppercase;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+        }
+    
+        input {
+          background: var(--bg-dark);
+          border: 1px solid #334155;
+          color: var(--text-pure);
+          padding: 8px 12px;
+          border-radius: 4px;
+          font-family: 'Fira Code', monospace;
+          font-size: 0.9rem;
+          width: 100%;
+          outline: none;
+          &:focus { border-color: var(--accent); box-shadow: 0 0 5px var(--accent-soft); }
+        }
+    
+        small {
+          color: #64748b;
+          font-size: 0.7rem;
+        }
+      }
+      .usage-hint-box {
+        background: rgba(0, 0, 0, 0.2);
+        padding: 10px 15px;
+        margin: 0 20px 10px 20px;
+        border-radius: 6px;
+        border-left: 3px solid #475569;
+    
+        .hint-item {
+          font-size: 0.8rem;
+          margin-bottom: 4px;
+          display: flex;
+          align-items: center;
+    
+          .hint-title { color: #94a3b8; width: 50px; flex-shrink: 0; }
+          
+          code {
+            background: #0f172a;
+            color: var(--warning);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.8rem;
+          }
+        }
+    
+        .hint-note {
+          font-size: 0.7rem;
+          color: #64748b;
+          margin-top: 6px;
+          font-style: italic;
+        }
+      }
+    }
+  
+    /* ==========================================================================
+       5. 右側：報告與數據觀察窗 (核心進化區)
+       ========================================================================== */
+    .analysis-report {
+      background: #0b1120;
+      border-left: 1px solid var(--border-dim);
+      padding: 25px;
+      overflow-y: auto;
+  
+      .variable-watch-window {
+        background: #020617;
+        border: 1px solid var(--accent);
+        border-radius: 8px;
+        margin-bottom: 25px;
+        overflow: hidden;
+        box-shadow: 0 15px 40px rgba(0,0,0,0.6);
+  
+        .watch-header {
+          background: var(--accent);
+          color: #020617;
+          padding: 8px 15px;
+          font-size: 0.75rem;
+          font-weight: 900;
+          display: flex;
+          justify-content: space-between;
+        }
+  
+        .watch-table {
+          /* 🧬 數據整容細節樣式 */
+          .impact-detail {
+            padding: 15px;
+            background: rgba(56, 189, 248, 0.04);
+            border-bottom: 1px solid var(--border-dim);
+            label { display: block; color: var(--accent); font-size: 0.7rem; font-weight: bold; margin-bottom: 6px; text-transform: uppercase; }
+            p { margin: 0; font-size: 0.85rem; line-height: 1.5; color: var(--text-soft); font-style: italic; }
+          }
+  
+          .watch-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            border-bottom: 1px solid #1e293b;
+            padding: 10px 15px;
+            font-size: 0.85rem;
+            font-family: 'Fira Code', monospace;
+  
+            &.header {
+              background: rgba(255,255,255,0.02);
+              color: #64748b;
+              font-size: 0.7rem;
+              text-transform: uppercase;
+            }
+            .v-name { color: #94a3b8; }
+            .v-value { color: var(--warning); font-weight: bold; }
+          }
+          .no-vars { padding: 25px; color: #475569; font-size: 0.8rem; text-align: center; font-style: italic; }
+        }
+  
+        .close-watch-btn {
+          width: 100%; padding: 10px; background: transparent; color: var(--accent);
+          border: none; border-top: 1px solid var(--border-dim); cursor: pointer;
+          font-size: 0.75rem; font-weight: bold;
+          &:hover { background: var(--accent-soft); }
+        }
+      }
+  
+      .report-header { 
+        color: var(--accent); font-weight: 900; font-size: 0.9rem; margin-bottom: 20px; 
+        border-bottom: 1px solid var(--border-dim); padding-bottom: 12px; letter-spacing: 1px;
+      }
+    }
+  }
+  
+  /* ==========================================================================
+     6. 輔助組件 (Peek, Loading, Markdown)
+     ========================================================================== */
+  .peek-card {
+    position: fixed; z-index: 9999; background: var(--bg-panel); border: 1px solid var(--accent);
+    padding: 18px; border-radius: 12px; box-shadow: 0 20px 50px rgba(0,0,0,0.7);
+    max-width: 400px; pointer-events: none; backdrop-filter: blur(12px);
+    animation: peek-in 0.2s ease-out;
+  
+    .peek-name { color: var(--accent); font-weight: 800; border-bottom: 1px solid #334155; margin-bottom: 10px; padding-bottom: 5px; }
+    .peek-summary { font-size: 0.88rem; line-height: 1.6; color: #f1f5f9; }
+    .peek-calls { margin-top: 12px; .call-title { font-size: 0.75rem; color: #64748b; margin-bottom: 5px; } .call-tag { display: inline-block; background: #0f172a; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; margin-right: 5px; border: 1px solid #1e293b; } }
+    
+    &.external-peek { 
+      border: 1px dashed #94a3b8; 
+      .peek-header { background: rgba(71,85,105,0.4); padding: 3px 8px; font-size: 0.7rem; margin-bottom: 10px; display: inline-block; border-radius: 4px; color: #fff; } 
+    }
+  }
+  
+  @keyframes peek-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  
+  .loading-container {
+    display: flex; flex-direction: column; align-items: center; justify-content: center; height: 350px;
+    .spinner { width: 45px; height: 45px; border: 3px solid rgba(56, 189, 248, 0.1); border-top: 3px solid var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 20px; }
+    p { color: var(--accent); font-size: 0.95rem; font-weight: bold; letter-spacing: 1px; margin-bottom: 8px; }
+    small { color: #475569; font-size: 0.75rem; }
+  }
+  
+  @keyframes spin { 100% { transform: rotate(360deg); } }
+  
+  ::ng-deep .markdown-body {
+    color: #cbd5e1 !important; line-height: 1.7;
+    h3 { color: var(--accent); margin-top: 35px; font-size: 1.15rem; border-bottom: 1px solid #1e293b; padding-bottom: 10px; font-weight: 800; }
+    p { margin: 15px 0; }
+    strong { color: var(--text-pure); }
+    pre { background: #000 !important; border: 1px solid #1e293b; padding: 20px; border-radius: 10px; margin: 20px 0; overflow-x: auto; box-shadow: inset 0 2px 10px rgba(0,0,0,0.5); }
+    table { width: 100%; border-collapse: collapse; margin: 25px 0; th, td { border: 1px solid #1e293b; padding: 14px; font-size: 0.9rem; } th { background: #1e293b; color: var(--accent); text-align: left; } }
+    blockquote { border-left: 4px solid var(--accent); background: rgba(56, 189, 248, 0.05); margin: 20px 0; padding: 15px 20px; font-style: italic; border-radius: 0 8px 8px 0; }
+  }
+  
+  ::ng-deep .highlight-line-flash { animation: flash-bg 2.5s cubic-bezier(0.4, 0, 0.2, 1); }
+  @keyframes flash-bg { 0% { background: rgba(56, 189, 248, 0.4); box-shadow: inset 0 0 15px var(--accent); } 100% { background: transparent; } }
