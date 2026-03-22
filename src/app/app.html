@@ -1,20 +1,23 @@
 <div class="app-container" (mousemove)="onMouseMove($event)" (mouseup)="onMouseUp()">
   <header class="top-bar">
-    <div class="brand">🕵️ SQL 邏輯考古學家</div>
+    <div class="brand">🕵️ SQL 考古學家 <small>v2.0 (RTX 5060 Edition)</small></div>
     <div class="controls">
       <select [ngModel]="selectedMode()" (ngModelChange)="selectedMode.set($event)" class="mode-select">
-        <option value="debug">🐛 救火診斷</option>
-        <option value="document">📝 邏輯文件化</option>
-        <option value="trace">🔎 執行路徑追蹤</option>
+        <option value="document">📜 業務通靈 (動機分析)</option>
+        <option value="trace">🧩 虛擬偵錯 (數據演變)</option>
+        <option value="debug">🚀 效能診斷 (架構優化)</option>
       </select>
-      <input type="password" [ngModel]="apiKey()" (ngModelChange)="apiKey.set($event)" placeholder="API Key">
+      
+      <input type="password" [ngModel]="apiKey()" (ngModelChange)="apiKey.set($event)" placeholder="API Key 或輸入 'ollama'">
+      
       <button class="run-btn" (click)="startRescue()" [disabled]="loading()">
-        {{ loading() ? '⚡ 掃描中...' : '開始分析' }}
+        {{ loading() ? '⚡ 顯卡通靈中...' : '開始分析' }}
       </button>
     </div>
   </header>
 
   <div class="app-layout" [style.grid-template-columns]="layoutConfig()">
+    
     <aside class="logic-map">
       <div class="sidebar-header">📍 結構與執行追蹤</div>
       <div class="nav-list">
@@ -32,19 +35,16 @@
           <div class="trace-timeline" *ngIf="selectedMode() === 'trace' && p.steps?.length">
             <div *ngFor="let s of p.steps" class="trace-step" 
                  [class.active-step]="selectedStep() === s"
-                 (click)="selectStep(s)"> <div class="step-dot"></div>
+                 (click)="selectStep(s)">
+              <div class="step-dot"></div>
               <div class="step-info">
                 <div class="step-top">
                   <span class="step-label">{{s.label}}</span>
                   <span class="step-line">L{{s.line}}</span>
                 </div>
                 
-                <div class="step-branch" *ngIf="s.branch">
-                  <span class="branch-icon">分岐 ➔</span> {{s.branch}}
-                </div>
-
                 <div class="step-desc">{{s.desc}}</div>
-                <div class="step-impact" *ngIf="s.impact">⚡ {{s.impact}}</div>
+                <div class="step-impact" *ngIf="s.impact">🧬 {{s.impact}}</div>
               </div>
             </div>
           </div>
@@ -55,15 +55,34 @@
     <div class="resizer" (mousedown)="startResizing('map')"></div>
 
     <main class="editor-area">
+      <div class="debug-params-bar" *ngIf="selectedMode() === 'trace' && !isAnalyzed()">
+        <div class="params-header">
+          <div class="params-label">
+            <span class="icon">🛠️</span> 偵錯參數與啟動入口
+          </div>
+          <div class="usage-badge">用法引導</div>
+        </div>
+      
+        <input type="text" 
+               [ngModel]="testParams()" 
+               (ngModelChange)="testParams.set($event)"
+               placeholder="輸入 [程序名]: 參數1=值, ...">
+      
+        <div class="usage-hint-box">
+          <div class="hint-item">
+            <span class="hint-title">語法：</span>
+            <code>[PROC_NAME]: 參數=值, 參數2=值</code>
+          </div>
+        </div>
+      </div>
+    
       <textarea *ngIf="!isAnalyzed()" 
                 [ngModel]="sqlInput()" (ngModelChange)="sqlInput.set($event)"
                 class="sql-input" placeholder="貼上 Package Body..."></textarea>
-
-      <div *ngIf="isAnalyzed()" 
-           class="code-viewer" 
-           (mouseover)="handleHover($event)" (mouseout)="hidePeek()"
-           [innerHTML]="renderedCode()">
-      </div>
+    
+                <div *ngIf="isAnalyzed()" class="code-viewer">
+                  <div [innerHTML]="renderedCode()" (click)="handleHover($event)"></div>
+                </div>
       <button class="reset-btn" *ngIf="isAnalyzed()" (click)="reset()">重新輸入</button>
     </main>
 
@@ -73,29 +92,38 @@
       
       <div class="variable-watch-window" *ngIf="selectedMode() === 'trace' && selectedStep()">
         <div class="watch-header">
-          <span>📋 變數觀察窗 (Variable Watch)</span>
+          <span>📋 數據演變觀察 (Evolution)</span>
           <span class="watch-line">Line: {{selectedStep()?.line}}</span>
         </div>
         <div class="watch-table">
+          <div class="impact-detail" *ngIf="selectedStep()?.impact">
+            <label>✨ 本步數據變化：</label>
+            <p>{{selectedStep()?.impact}}</p>
+          </div>
+
           <div class="watch-row header">
             <span>變數名稱</span>
-            <span>預測值 / 狀態</span>
+            <span>執行後預測值</span>
           </div>
           <div class="watch-row" *ngFor="let v of selectedStep()?.vars">
             <span class="v-name">{{v.name}}</span>
             <span class="v-value">{{v.value}}</span>
           </div>
           <div class="no-vars" *ngIf="!selectedStep()?.vars?.length">
-            此步驟無變數異動資訊
+            此步驟主要為流程跳轉，無顯著變數異動
           </div>
         </div>
+        <button class="close-watch-btn" (click)="selectedStep.set(null)">返回完整報告</button>
       </div>
 
-      <div class="report-header">🧠 AI 診斷報告</div>
+      <div class="report-header">🧠 {{ selectedMode() === 'document' ? '商業意圖通靈報告' : 'AI 診斷報告' }}</div>
+      
       <div class="loading-container" *ngIf="loading()">
         <div class="spinner"></div>
-        <p>AI 考古學家正在挖掘深層邏輯...</p>
+        <p>RTX 5060 正在深層通靈中...</p>
+        <small>這段 SQL 較為複雜，請稍候...</small>
       </div>
+
       <div class="markdown-body" *ngIf="!loading() && result()" [innerHTML]="parsedResult()"></div>
     </section>
   </div>
@@ -103,11 +131,11 @@
   <div class="peek-card" *ngIf="peekData()" 
        [class.external-peek]="peekData()?.isExternal"
        [style.left.px]="peekData()?.pos?.x" [style.top.px]="peekData()?.pos?.y">
-    <div class="peek-header" *ngIf="peekData()?.isExternal">📡 外部相依預覽</div>
+    <div class="peek-header" *ngIf="peekData()?.isExternal">📡 外部 Package 相依預覽</div>
     <div class="peek-name">{{peekData()?.name}}</div>
     <div class="peek-summary">{{peekData()?.summary}}</div>
     <div class="peek-calls" *ngIf="peekData()?.calls?.length">
-      <div class="call-title">🔗 內部呼叫：</div>
+      <div class="call-title">🔗 關聯呼叫：</div>
       <span *ngFor="let c of peekData()?.calls" class="call-tag">{{c}}</span>
     </div>
   </div>
